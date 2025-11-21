@@ -14,7 +14,7 @@ import { ApartmentDto } from './dto/apartment.dto';
 import { ApiKeyGuard } from '../security/guard';
 
 @UseGuards(ApiKeyGuard)
-@Controller('/api/apartments')
+@Controller('/api/apartment-service')
 export class ApartmentController {
   constructor(private readonly apartmentService: ApartmentService) {}
 

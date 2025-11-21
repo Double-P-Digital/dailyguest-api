@@ -29,6 +29,21 @@ export class DiscountCodeService {
     return mapDocumentToDto(savedCode);
   }
 
+  async findAll(): Promise<DiscountCode[]> {
+    const discountCodes = await this.discountModel.find().exec();
+
+    return discountCodes.map((code) => mapDocumentToDto(code));
+  }
+
+  async findOne(id: string): Promise<DiscountCode> {
+    const discountCode = await this.discountModel.findById(id).exec();
+    if (!discountCode) {
+      throw new NotFoundException('Discount Code not found');
+    }
+
+    return mapDocumentToDto(discountCode);
+  }
+
   async delete(codeId: string): Promise<void> {
     const code = await this.discountModel.findById(codeId).exec();
 

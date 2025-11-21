@@ -5,7 +5,7 @@ import { Reservation } from './reservation.schema';
 import { ApiKeyGuard } from '../security/guard';
 
 @UseGuards(ApiKeyGuard)
-@Controller('/api/reservation')
+@Controller('/api/reservation-service')
 export class ReservationController {
   constructor(private readonly reservationService: ReservationService) {}
 

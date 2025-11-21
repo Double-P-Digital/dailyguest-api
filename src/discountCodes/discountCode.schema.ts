@@ -6,7 +6,7 @@ export class DiscountCode {
   code: string;
 
   @Prop()
-  percentage: number;
+  price: number;
 
   @Prop()
   expirationDate: Date;

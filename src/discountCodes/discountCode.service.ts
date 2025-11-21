@@ -16,7 +16,7 @@ export class DiscountCodeService {
   async create(createDto: CreateDiscountCodeDto): Promise<DiscountCode> {
     const newCode = new this.discountModel({
       code: createDto.code,
-      percentage: createDto.percentage,
+      price: createDto.price,
       expirationDate: createDto.expirationDate,
     });
     const savedCode = await newCode.save();

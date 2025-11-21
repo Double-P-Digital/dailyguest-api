@@ -16,7 +16,7 @@ export class CreateDiscountCodeDto {
 
   @IsInt()
   @IsNotEmpty()
-  readonly percentage: number;
+  readonly price: number;
 
   @Type(() => Date)
   @IsDate()

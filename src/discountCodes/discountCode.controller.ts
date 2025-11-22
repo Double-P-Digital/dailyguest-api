@@ -13,7 +13,7 @@ import { CreateDiscountCodeDto } from './dto/discountCodeDto.dto';
 import { ApiKeyGuard } from '../security/guard';
 
 @UseGuards(ApiKeyGuard)
-@Controller('api/discount-code-service')
+@Controller('/api/discount-code-service')
 export class DiscountCodeController {
   constructor(private readonly discountService: DiscountCodeService) {}
 
@@ -24,7 +24,7 @@ export class DiscountCodeController {
     return this.discountService.create(createDto);
   }
 
-  @Get()
+  @Get('all')
   async findAll(): Promise<DiscountCode[]> {
     return this.discountService.findAll();
   }

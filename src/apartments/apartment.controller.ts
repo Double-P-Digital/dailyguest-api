@@ -28,7 +28,7 @@ export class ApartmentController {
     return this.apartmentService.findOne(id);
   }
 
-  @Get(':city')
+  @Get('city/:city')
   findByCity(@Param('city') city: string): Promise<Apartment[]> {
     return this.apartmentService.findByCity(city);
   }

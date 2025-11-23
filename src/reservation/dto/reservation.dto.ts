@@ -8,7 +8,84 @@ import {
   Min,
   IsEnum,
   IsOptional,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class CreateReservationProductDto {
+  @IsNumber()
+  @IsNotEmpty()
+  productId: number;
+
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsNumber()
+  @Min(0)
+  quantity: number;
+
+  @IsNumber()
+  @Min(0)
+  price: number;
+
+  @IsNumber()
+  @IsOptional()
+  unitPrice?: number;
+
+  @IsNumber()
+  @IsOptional()
+  persons?: number;
+
+  @IsNumber()
+  @IsOptional()
+  nights?: number;
+}
+
+export class CreateReservationRoomDto {
+  @IsNumber()
+  @IsNotEmpty()
+  roomId: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  planId: number;
+
+  @IsNumber()
+  @IsOptional()
+  offerId?: number;
+
+  @IsNumber()
+  @Min(1)
+  quantity: number;
+
+  @IsNumber()
+  @Min(0)
+  price: number;
+
+  @IsArray()
+  @IsNotEmpty()
+  pricePerDay: number[];
+
+  @IsNumber()
+  @Min(1)
+  noGuests: number;
+
+  @IsString()
+  @IsOptional()
+  voucherCode?: string;
+
+  @IsNumber()
+  @IsOptional()
+  voucherDiscount?: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateReservationProductDto)
+  @IsOptional()
+  products?: CreateReservationProductDto[];
+}
 
 export class CreateReservationDto {
   @IsMongoId()
@@ -25,11 +102,11 @@ export class CreateReservationDto {
 
   @IsDateString()
   @IsNotEmpty()
-  checkInDate: Date;
+  checkInDate: string;
 
   @IsDateString()
   @IsNotEmpty()
-  checkOutDate: Date;
+  checkOutDate: string;
 
   @IsNumber()
   @Min(1)
@@ -47,4 +124,9 @@ export class CreateReservationDto {
   @IsEnum(['pending', 'confirmed', 'cancelled'])
   @IsOptional()
   status?: string = 'pending';
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateReservationRoomDto)
+  rooms: CreateReservationRoomDto[];
 }

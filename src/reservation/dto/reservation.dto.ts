@@ -39,7 +39,7 @@ export class CreateReservationRoomDto {
 export class CreateReservationDto {
   @IsNumber()
   @IsNotEmpty()
-  hotelId: number;
+  hotelId: number | undefined;
 
   @IsString()
   @IsNotEmpty()

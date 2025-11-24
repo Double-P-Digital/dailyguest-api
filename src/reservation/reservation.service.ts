@@ -3,7 +3,7 @@ import { CreateReservationDto } from './dto/reservation.dto';
 import { Reservation } from './reservation.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { PynbookingService, } from '../pynbooking/pynbooking.service';
+import { PynbookingService } from '../pynbooking/pynbooking.service';
 import { PynbookingConfirmPaidResponse } from '../pynbooking/types';
 
 @Injectable()

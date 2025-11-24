@@ -4,13 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { CreateReservationDto } from '../reservation/dto/reservation.dto';
 import { PynbookingFactory } from './pynbooking.utils';
-import { PynbookingCreateReservationDto } from './types';
-
-export type PynbookingConfirmPaidResponse = {
-  bookingId: number;
-  status: string;
-  message?: string;
-};
+import {
+  PynbookingConfirmPaidResponse,
+  PynbookingCreateReservationDto,
+} from './types';
 
 @Injectable()
 export class PynbookingService {
@@ -28,20 +25,14 @@ export class PynbookingService {
    * Sends a reservation to Pynbooking after a successful booking.
    * @param reservationDto The DTO from your website reservation
    * @param hotelId Optional: hotel ID for Pynbooking
-   * @param confirmUrl Optional: confirmation URL for EU payment flow
    */
   async sendReservation(
     reservationDto: CreateReservationDto,
     hotelId?: number,
-    confirmUrl?: string,
   ): Promise<PynbookingConfirmPaidResponse> {
     try {
       const payload: PynbookingCreateReservationDto =
-        PynbookingFactory.buildReservationPayload(
-          reservationDto,
-          hotelId,
-          confirmUrl,
-        );
+        PynbookingFactory.buildReservationPayload(reservationDto, hotelId);
 
       const url = `${this.baseUrl}/booking/confirmPaid/`;
       const response = await firstValueFrom(

@@ -1,13 +1,10 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { handleDbError } from '../helpers/handleDbError';
 import { CreateReservationDto } from './dto/reservation.dto';
 import { Reservation } from './reservation.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import {
-  PynbookingService,
-  PynbookingConfirmPaidResponse,
-} from '../pynbooking/pynbooking.service';
+import { PynbookingService, } from '../pynbooking/pynbooking.service';
+import { PynbookingConfirmPaidResponse } from '../pynbooking/types';
 
 @Injectable()
 export class ReservationService {
@@ -15,31 +12,18 @@ export class ReservationService {
     @InjectModel(Reservation.name) private reservationModel: Model<Reservation>,
     private readonly pynbookingService: PynbookingService,
   ) {}
-  async create(reservationDto: CreateReservationDto): Promise<Reservation> {
-    let savedReservation: Reservation;
-
-    try {
-      const newReservation = new this.reservationModel(reservationDto);
-      savedReservation = await newReservation.save();
-    } catch (error) {
-      handleDbError(error);
-    }
-
-    if (!savedReservation) {
-      throw new InternalServerErrorException('Reservation could not be saved');
-    }
-
+  async create(
+    reservationDto: CreateReservationDto,
+  ): Promise<PynbookingConfirmPaidResponse> {
     try {
       const hotelId = 523; // TODO Replace with your hotel ID
-      const response: PynbookingConfirmPaidResponse =
-        await this.pynbookingService.sendReservation(reservationDto, hotelId);
-
-      console.log('Pynbooking bookingId:', response.bookingId);
+      return await this.pynbookingService.sendReservation(
+        reservationDto,
+        hotelId,
+      );
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
-
-    return savedReservation;
   }
 
   async findByPaymentIntentId(paymentIntentId: string) {

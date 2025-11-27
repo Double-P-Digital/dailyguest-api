@@ -18,9 +18,10 @@ export class DiscountCodeService {
       code: createDto.code,
       price: createDto.price,
       expirationDate: createDto.expirationDate,
+      apartmentIds: createDto.apartmentIds,
     });
-    const savedCode = await newCode.save();
 
+    const savedCode = await newCode.save();
     await this.apartmentModel.updateMany(
       { _id: { $in: createDto.apartmentIds } },
       { $set: { discountCode: savedCode._id } },
@@ -31,12 +32,12 @@ export class DiscountCodeService {
 
   async findAll(): Promise<DiscountCode[]> {
     const discountCodes = await this.discountModel.find().exec();
-
     return discountCodes.map((code) => mapDocumentToDto(code));
   }
 
   async findOne(id: string): Promise<DiscountCode> {
     const discountCode = await this.discountModel.findById(id).exec();
+
     if (!discountCode) {
       throw new NotFoundException('Discount Code not found');
     }
@@ -55,7 +56,7 @@ export class DiscountCodeService {
 
     await this.apartmentModel.updateMany(
       { discountCode: codeId },
-      { $unset: { discountCode: null } },
+      { $unset: { discountCode: '' } },
     );
 
     await code.deleteOne();

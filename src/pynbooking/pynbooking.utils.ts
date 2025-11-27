@@ -7,8 +7,6 @@ import { PynbookingCreateReservationDto, Room } from './types';
 export class PynbookingFactory {
   static buildReservationPayload(
     dto: CreateReservationDto,
-    hotelId?: number,
-    guestCity = 'N/A',
   ): PynbookingCreateReservationDto {
     const rooms: Room[] = dto.rooms.map((r: CreateReservationRoomDto) => {
       const start = new Date(dto.checkInDate);
@@ -38,11 +36,11 @@ export class PynbookingFactory {
       guestPhone: dto.guestPhone,
       guestCountryCode: 'RO',
       guestAddress: 'N/A',
-      guestCity,
+      guestCity: 'N/A',
       currency: 'RON',
       language: 'RO',
       totalPrice: dto.totalPrice,
-      hotelId,
+      hotelId: dto.hotelId || undefined,
       rooms,
     };
   }

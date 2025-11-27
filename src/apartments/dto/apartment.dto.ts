@@ -9,6 +9,9 @@ import {
 } from 'class-validator';
 
 export class ApartmentDto {
+  @IsString()
+  readonly hotelId: string;
+
   @IsOptional()
   @IsMongoId()
   readonly id?: string;

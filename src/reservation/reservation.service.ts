@@ -16,10 +16,8 @@ export class ReservationService {
     reservationDto: CreateReservationDto,
   ): Promise<PynbookingConfirmPaidResponse> {
     try {
-      const hotelId = 523; // TODO Replace with your hotel ID
       return await this.pynbookingService.sendReservation(
-        reservationDto,
-        hotelId,
+        reservationDto
       );
     } catch (error) {
       throw new InternalServerErrorException(error);

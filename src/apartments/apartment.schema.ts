@@ -4,6 +4,9 @@ import { Types } from 'mongoose';
 @Schema()
 export class Apartment {
   @Prop({ required: true })
+  hotelId: string;
+
+  @Prop({ required: true })
   name: string;
 
   @Prop()

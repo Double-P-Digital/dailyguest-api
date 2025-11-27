@@ -24,15 +24,13 @@ export class PynbookingService {
   /**
    * Sends a reservation to Pynbooking after a successful booking.
    * @param reservationDto The DTO from your website reservation
-   * @param hotelId Optional: hotel ID for Pynbooking
    */
   async sendReservation(
     reservationDto: CreateReservationDto,
-    hotelId?: number,
   ): Promise<PynbookingConfirmPaidResponse> {
     try {
       const payload: PynbookingCreateReservationDto =
-        PynbookingFactory.buildReservationPayload(reservationDto, hotelId);
+        PynbookingFactory.buildReservationPayload(reservationDto);
 
       const url = `${this.baseUrl}/booking/confirmPaid/`;
       const response = await firstValueFrom(

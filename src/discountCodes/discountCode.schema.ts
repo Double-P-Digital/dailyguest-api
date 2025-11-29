@@ -14,7 +14,7 @@ export class DiscountCode {
 
   @Prop({ required: true })
   expirationDate: Date;
-  
+
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Apartment' }], required: true })
   apartmentIds: Types.ObjectId[];
 }

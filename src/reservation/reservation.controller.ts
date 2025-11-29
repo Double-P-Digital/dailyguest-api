@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Get } from '@nestjs/common';
 import { CreateReservationDto as ReservationDto } from './dto/reservation.dto';
 import { ReservationService } from './reservation.service';
 import { ApiKeyGuard } from '../security/guard';
@@ -14,5 +14,10 @@ export class ReservationController {
     @Body() reservation: ReservationDto,
   ): Promise<PynbookingConfirmPaidResponse> {
     return this.reservationService.create(reservation);
+  }
+
+  @Get('top-apartments')
+  async getTopApartments(): Promise<{ apartmentId: string; count: number }[]> {
+    return this.reservationService.topApartments();
   }
 }

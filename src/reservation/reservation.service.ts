@@ -27,4 +27,15 @@ export class ReservationService {
   async findByPaymentIntentId(paymentIntentId: string) {
     return this.reservationModel.findOne({ paymentIntentId });
   }
+
+  async topApartments(): Promise<{ apartmentId: string; count: number }[]> {
+    const result = await this.reservationModel.aggregate([
+      { $group: { _id: '$apartmentId', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+      { $project: { _id: 0, apartmentId: '$_id', count: 1 } },
+    ]);
+    return result as { apartmentId: string; count: number }[];
+  }
 }
+

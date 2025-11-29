@@ -9,6 +9,9 @@ export class DiscountCode {
   @Prop({ required: true })
   price: number;
 
+  @Prop({ required: true, default: 'EUR' })
+  currency: string;
+
   @Prop({ required: true })
   expirationDate: Date;
   

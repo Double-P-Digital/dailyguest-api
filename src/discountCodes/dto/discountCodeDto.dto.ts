@@ -18,6 +18,10 @@ export class CreateDiscountCodeDto {
   @IsNotEmpty()
   readonly price: number;
 
+  @IsString()
+  @IsNotEmpty()
+  readonly currency: string;
+
   @Type(() => Date)
   @IsDate()
   @IsNotEmpty()

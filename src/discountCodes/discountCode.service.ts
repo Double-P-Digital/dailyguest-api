@@ -17,6 +17,7 @@ export class DiscountCodeService {
     const newCode = new this.discountModel({
       code: createDto.code,
       price: createDto.price,
+      currency: createDto.currency,
       expirationDate: createDto.expirationDate,
       apartmentIds: createDto.apartmentIds,
     });

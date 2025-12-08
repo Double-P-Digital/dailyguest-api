@@ -1,13 +1,21 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
+export enum DiscountType {
+  FIXED = 'FIXED',
+  PERCENTAGE = 'PERCENTAGE',
+}
+
 @Schema()
 export class DiscountCode {
   @Prop({ unique: true, required: true })
   code: string;
 
+  @Prop({ required: true, enum: DiscountType, default: DiscountType.FIXED })
+  discountType: DiscountType;
+
   @Prop({ required: true })
-  price: number;
+  value: number; // Preț fix sau procentaj (0-100)
 
   @Prop({ required: true })
   expirationDate: Date;

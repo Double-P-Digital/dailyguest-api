@@ -28,6 +28,10 @@ export class PynbookingFactory {
       };
     });
 
+    const currency = dto.rooms.length > 0 && dto.rooms[0].currency
+      ? dto.rooms[0].currency.toUpperCase()
+      : 'RON';
+
     return {
       arrivalDate: dto.checkInDate,
       departureDate: dto.checkOutDate,
@@ -37,7 +41,7 @@ export class PynbookingFactory {
       guestCountryCode: 'RO',
       guestAddress: 'N/A',
       guestCity: 'N/A',
-      currency: 'RON',
+      currency: currency,
       language: 'RO',
       totalPrice: dto.totalPrice,
       hotelId: dto.hotelId || undefined,

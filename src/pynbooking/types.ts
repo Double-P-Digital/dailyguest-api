@@ -28,3 +28,28 @@ export type PynbookingConfirmPaidResponse = {
   status: string;
   message?: string;
 };
+
+export type PynBookingReservation = {
+  id: string;
+  checkInDate: string;
+  checkOutDate: string;
+  reservationType: string | number;
+  roomName: string;
+  status: string;
+  checkIn: boolean;
+  guestId: string;
+  guestName: string;
+  guestPhone: string;
+  guests: Array<{
+    guestId: string;
+    guestName: string;
+    guestPhone: string;
+  }>;
+};
+
+export interface CheckAvailabilityResponse {
+  available: boolean;
+  message?: string;
+  price?: number;
+  pricePerDay?: number[];
+}

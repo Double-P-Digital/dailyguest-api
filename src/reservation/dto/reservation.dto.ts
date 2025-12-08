@@ -23,6 +23,10 @@ export class CreateReservationRoomDto {
   @Min(1)
   quantity: number;
 
+  @IsString()
+  @IsNotEmpty()
+  currency: string;
+
   @IsNumber()
   @Min(0)
   price: number;

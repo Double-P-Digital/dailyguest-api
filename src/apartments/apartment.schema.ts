@@ -7,6 +7,9 @@ export class Apartment {
   hotelId: string;
 
   @Prop({ required: true })
+  roomId: string;
+
+  @Prop({ required: true })
   name: string;
 
   @Prop()
@@ -56,6 +59,9 @@ export class Apartment {
 
   @Prop()
   status: string;
+
+  @Prop()
+  stripeAccountId: string;
 }
 
 export const ApartmentSchema = SchemaFactory.createForClass(Apartment);

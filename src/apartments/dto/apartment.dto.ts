@@ -12,6 +12,9 @@ export class ApartmentDto {
   @IsString()
   readonly hotelId: string;
 
+  @IsString()
+  readonly roomId: string;
+
   @IsOptional()
   @IsMongoId()
   readonly id?: string;
@@ -41,4 +44,7 @@ export class ApartmentDto {
   @IsString({ each: true })
   @ArrayMinSize(1)
   readonly images: string[];
+
+  @IsString()
+  readonly stripeAccountId: string;
 }

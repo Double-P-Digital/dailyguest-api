@@ -4,8 +4,8 @@ import { Apartment } from '../apartments/apartment.schema';
 
 @Schema({ timestamps: true })
 export class Reservation extends Document {
-  @Prop({ type: Types.ObjectId, ref: 'Apartment', required: true })
-  apartment: Apartment | Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Apartment', required: false })
+  apartment?: Apartment | Types.ObjectId;
 
   @Prop({ required: true })
   guestName: string;

@@ -4,6 +4,7 @@ import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 import { Stripe } from 'stripe';
 import { ReservationModule } from '../reservation/reservation.module';
+import { ApartmentModule } from '../apartments/apartment.module';
 
 @Module({})
 export class PaymentsModule {
@@ -11,7 +12,7 @@ export class PaymentsModule {
     return {
       module: PaymentsModule,
       controllers: [PaymentsController],
-      imports: [ConfigModule, ReservationModule],
+      imports: [ConfigModule, ReservationModule, ApartmentModule],
       providers: [
         {
           provide: 'STRIPE_CLIENT',

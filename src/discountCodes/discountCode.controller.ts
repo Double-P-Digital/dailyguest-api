@@ -6,10 +6,12 @@ import {
   Param,
   UseGuards,
   Get,
+  ValidationPipe,
 } from '@nestjs/common';
 import { DiscountCodeService } from './discountCode.service';
 import { DiscountCode } from './discountCode.schema';
 import { CreateDiscountCodeDto } from './dto/discountCodeDto.dto';
+import { CalculateDiscountDto } from './dto/calculate-discount.dto';
 import { ApiKeyGuard } from '../security/guard';
 
 @UseGuards(ApiKeyGuard)
@@ -37,5 +39,12 @@ export class DiscountCodeController {
   @Delete(':id')
   async delete(@Param('id') id: string): Promise<void> {
     return this.discountService.delete(id);
+  }
+
+  @Post('calculate')
+  async calculateDiscount(
+    @Body(new ValidationPipe()) calculateDto: CalculateDiscountDto,
+  ) {
+    return this.discountService.calculateDiscount(calculateDto);
   }
 }

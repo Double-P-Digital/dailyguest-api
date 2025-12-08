@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApartmentService } from './apartment.service';
@@ -23,14 +24,20 @@ export class ApartmentController {
     return this.apartmentService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string): Promise<Apartment> {
-    return this.apartmentService.findOne(id);
+  @Get('top-booked')
+  findTopBooked(@Query('limit') limit?: string): Promise<(Apartment & { bookingCount: number })[]> {
+    const limitNumber = limit ? parseInt(limit, 10) : 10;
+    return this.apartmentService.findTopBooked(limitNumber);
   }
 
   @Get('city/:city')
   findByCity(@Param('city') city: string): Promise<Apartment[]> {
     return this.apartmentService.findByCity(city);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string): Promise<Apartment> {
+    return this.apartmentService.findOne(id);
   }
 
   @Post()

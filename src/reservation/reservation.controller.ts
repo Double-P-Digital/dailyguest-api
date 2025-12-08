@@ -1,8 +1,10 @@
-import { Body, Controller, Post, UseGuards, Get } from '@nestjs/common';
+import {Body,Controller,Get,Post,Query,UseGuards,ValidationPipe,} from '@nestjs/common';
 import { CreateReservationDto as ReservationDto } from './dto/reservation.dto';
+import { CheckAvailabilityDto } from './dto/check-availability.dto';
+import { SearchReservationsDto } from './dto/search-reservations.dto';
 import { ReservationService } from './reservation.service';
 import { ApiKeyGuard } from '../security/guard';
-import { PynbookingConfirmPaidResponse } from '../pynbooking/types';
+import {CheckAvailabilityResponse,PynbookingConfirmPaidResponse,PynBookingReservation,} from '../pynbooking/types';
 
 @UseGuards(ApiKeyGuard)
 @Controller('/api/reservation-service')
@@ -12,12 +14,21 @@ export class ReservationController {
   @Post()
   create(
     @Body() reservation: ReservationDto,
-  ): Promise<PynbookingConfirmPaidResponse> {
+  ): Promise<PynbookingConfirmPaidResponse | null> {
     return this.reservationService.create(reservation);
   }
 
-  @Get('top-apartments')
-  async getTopApartments(): Promise<{ apartmentId: string; count: number }[]> {
-    return this.reservationService.topApartments();
+  @Get('check-availability')
+  async checkAvailability(
+    @Query(new ValidationPipe({ transform: true })) query: CheckAvailabilityDto,
+  ): Promise<CheckAvailabilityResponse> {
+    return this.reservationService.checkAvailability(query);
+  }
+
+  @Post('search-reservations')
+  async searchReservations(
+    @Body(new ValidationPipe()) body: SearchReservationsDto,
+  ): Promise<PynBookingReservation[]> {
+    return this.reservationService.searchReservations(body);
   }
 }

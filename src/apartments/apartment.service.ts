@@ -49,18 +49,41 @@ export class ApartmentService {
     }
   }
 
+  // async update(id: string, apartmentDto: ApartmentDto): Promise<Apartment> {
+  //   try {
+  //     const updatedApartment = await this.apartmentModel
+  //       .findByIdAndUpdate(id, apartmentDto, { new: true })
+  //       .exec();
+  //
+  //     return mapDocumentToDto(updatedApartment);
+  //   } catch (error) {
+  //     handleDbError(error);
+  //   }
+  // }
   async update(id: string, apartmentDto: ApartmentDto): Promise<Apartment> {
     try {
+      console.log('UPDATE: id param =', id);
+      console.log('UPDATE: apartmentDto =', apartmentDto);
+
+      const { id: dtoId, ...updateData } = apartmentDto;
+      console.log('UPDATE: updateData (without id) =', updateData);
+
       const updatedApartment = await this.apartmentModel
-        .findByIdAndUpdate(id, apartmentDto, { new: true })
+        .findByIdAndUpdate(id, updateData, { new: true })
         .exec();
+
+      console.log('UPDATE: result =', updatedApartment);
+
+      if (!updatedApartment) {
+        throw new NotFoundException(`Apartment with ID ${id} not found`);
+      }
 
       return mapDocumentToDto(updatedApartment);
     } catch (error) {
+      console.error('UPDATE ERROR:', error);
       handleDbError(error);
     }
   }
-
   async delete(id: string): Promise<Apartment> {
     const deleted = await this.apartmentModel.findByIdAndDelete(id).exec();
     if (!deleted) {

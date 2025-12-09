@@ -17,9 +17,12 @@ export class DiscountCode {
   @Prop({ required: true })
   value: number; // Preț fix sau procentaj (0-100)
 
+  @Prop({ required: true, default: 'EUR' })
+  currency: string;
+
   @Prop({ required: true })
   expirationDate: Date;
-  
+
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Apartment' }], required: true })
   apartmentIds: Types.ObjectId[];
 }

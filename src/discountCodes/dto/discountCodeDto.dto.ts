@@ -28,6 +28,10 @@ export class CreateDiscountCodeDto {
   @Max(100, { message: 'For percentage type, value must be between 0 and 100' })
   readonly value: number; // Preț fix (>= 0) sau procentaj (0-100)
 
+  @IsString()
+  @IsNotEmpty()
+  readonly currency: string;
+
   @Type(() => Date)
   @IsDate()
   @IsNotEmpty()

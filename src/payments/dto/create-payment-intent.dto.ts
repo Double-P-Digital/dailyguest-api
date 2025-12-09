@@ -45,8 +45,8 @@ export class CreatePaymentIntentDto {
 
   @IsString()
   @IsOptional()
-  @IsIn(['eur', 'ron', 'EUR', 'RON'])
-  @Transform(({ value }) => value?.toLowerCase())
+  @IsIn(['ron', 'RON'])
+  @Transform(({ value }) => 'ron')
   currency?: string;
 
   @IsString()

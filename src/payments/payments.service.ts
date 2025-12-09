@@ -27,18 +27,13 @@ export class PaymentsService {
   }) {
     try {
       const normalizedCurrency = currency?.toLowerCase();
-      const validCurrency = normalizedCurrency === 'eur' ? 'eur' : 'ron';
-
-      if (normalizedCurrency && !['eur', 'ron'].includes(normalizedCurrency)) {
-        throw new BadRequestException('Currency must be either "eur" or "ron"');
+      if (normalizedCurrency && normalizedCurrency !== 'ron') {
+        throw new BadRequestException('Currency must be "ron"');
       }
+      const validCurrency = 'ron';
 
       let estimatedStripeFee: number;
-      if (validCurrency === 'eur') {
-        estimatedStripeFee = amount * 0.02 + 0.30;
-      } else {
-        estimatedStripeFee = amount * 0.035 + 1.00;
-      }
+      estimatedStripeFee = amount * 0.035 + 1.00;
 
       const estimatedNetAmount = amount - estimatedStripeFee;
       const platformFeePercentage = 0.07;

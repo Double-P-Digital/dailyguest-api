@@ -43,6 +43,9 @@ export class PynbookingService {
       const payload: PynbookingCreateReservationDto =
         PynbookingFactory.buildReservationPayload(reservationDto);
 
+      this.logger.log(`[SendReservation] Building payload...`);
+      this.logger.log(`[SendReservation] Payload: ${JSON.stringify(payload, null, 2)}`);
+
       const url = this.baseUrl;
 
       // Convert payload to URL-encoded format (PynBooking requires x-www-form-urlencoded)
@@ -67,6 +70,9 @@ export class PynbookingService {
       // Rooms as JSON string (PynBooking expects this format)
       formData.append('rooms', JSON.stringify(payload.rooms));
 
+      this.logger.log(`[SendReservation] Sending to URL: ${url}`);
+      this.logger.log(`[SendReservation] FormData: ${formData.toString()}`);
+
       const response = await firstValueFrom(
         this.http.post<PynbookingConfirmPaidResponse>(url, formData.toString(), {
           headers: {
@@ -76,9 +82,13 @@ export class PynbookingService {
         }),
       );
 
+      this.logger.log(`[SendReservation] Success! Response: ${JSON.stringify(response.data)}`);
       return response.data;
     } catch (error: any) {
-      this.logger.error(`Reservation failed: ${error?.response?.data?.detail || error?.message}`);
+      this.logger.error(`[SendReservation] Failed!`);
+      this.logger.error(`[SendReservation] Error status: ${error?.response?.status}`);
+      this.logger.error(`[SendReservation] Error data: ${JSON.stringify(error?.response?.data)}`);
+      this.logger.error(`[SendReservation] Error message: ${error?.message}`);
 
       const errorMessage = error?.response?.data?.message || 
                           error?.response?.data?.detail ||

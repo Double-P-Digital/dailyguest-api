@@ -123,6 +123,12 @@ export class PaymentsController {
     @Headers('stripe-signature') signature: string,
     @Req() req: RawBodyRequest<Request>,
   ) {
+    this.logger.log(`[Webhook] Received request`);
+    this.logger.log(`[Webhook] Signature present: ${!!signature}`);
+    this.logger.log(`[Webhook] RawBody present: ${!!req.rawBody}`);
+    this.logger.log(`[Webhook] RawBody length: ${req.rawBody?.length || 0}`);
+    this.logger.log(`[Webhook] Webhook secret configured: ${!!this.webhookSecret}`);
+    
     let event: Stripe.Event;
 
     try {
@@ -134,12 +140,17 @@ export class PaymentsController {
         throw new BadRequestException('Webhook secret not configured');
       }
 
+      this.logger.log(`[Webhook] Attempting to verify signature...`);
+      
       event = this.stripe.webhooks.constructEvent(
         req.rawBody!,
         signature,
         this.webhookSecret,
       );
+      
+      this.logger.log(`[Webhook] Signature verified! Event type: ${event.type}`);
     } catch (err: any) {
+      this.logger.error(`[Webhook] Verification failed: ${err.message}`);
       throw new BadRequestException(`Webhook Error: ${err.message}`);
     }
 

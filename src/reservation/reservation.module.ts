@@ -5,6 +5,7 @@ import { ReservationService } from './reservation.service';
 import { ReservationController } from './reservation.controller';
 import { PynbookingService } from '../pynbooking/pynbooking.service';
 import { HttpModule } from '@nestjs/axios';
+import { RoomLockModule } from '../room-lock/room-lock.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { HttpModule } from '@nestjs/axios';
       { name: Reservation.name, schema: ReservationSchema },
     ]),
     HttpModule,
+    RoomLockModule,
   ],
   providers: [ReservationService, PynbookingService],
   controllers: [ReservationController],

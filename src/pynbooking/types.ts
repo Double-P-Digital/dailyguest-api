@@ -3,7 +3,7 @@ export type Room = {
   planId: number;
   quantity: number;
   price: number;
-  pricePerDay: Record<string, number>[];
+  pricePerDay: Record<string, number>;  // Single object { "2026-12-04": 240 }
   noGuests: number;
 };
 
@@ -25,6 +25,7 @@ export type PynbookingCreateReservationDto = {
 
 export type PynbookingConfirmPaidResponse = {
   bookingId: number;
+  reservationId?: string; // Alias pentru bookingId ca string
   status: string;
   message?: string;
 };
@@ -35,6 +36,8 @@ export type PynBookingReservation = {
   checkOutDate: string;
   reservationType: string | number;
   roomName: string;
+  roomType?: string;
+  roomTypeId?: string;
   status: string;
   checkIn: boolean;
   guestId: string;

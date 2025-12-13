@@ -1,16 +1,52 @@
+# Dependencies
 node_modules
+.pnpm-store
+
+# Build output
 dist
+
+# Git
 .git
 .gitignore
-README.md
-# .env is needed in container for ConfigModule
-# .env
-.env*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.DS_Store
-*.pem
-coverage
-test
+pnpm-debug.log*
 
+# Test
+test
+tests
+__tests__
+*.test.ts
+*.spec.ts
+coverage
+.nyc_output
+
+# Documentation
+README.md
+docs
+*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment (keep .env for production)
+.env*.local
+.env.development
+.env.test
+
+# Other
+*.pem
+*.key
+.eslintcache
+.prettierignore

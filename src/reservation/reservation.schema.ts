@@ -8,10 +8,16 @@ export class Reservation extends Document {
   apartment?: Apartment | Types.ObjectId;
 
   @Prop({ required: true })
+  hotelId: number;
+
+  @Prop({ required: true })
   guestName: string;
 
   @Prop({ required: true })
   guestEmail: string;
+
+  @Prop({ required: true })
+  guestPhone: string;
 
   @Prop({ required: true })
   checkInDate: Date;
@@ -37,11 +43,34 @@ export class Reservation extends Document {
   @Prop()
   externalBookingId: string;
 
+  @Prop({ type: Array })
+  rooms: any[];
+
+  // PynBooking sync status
   @Prop({ default: false })
   syncFailed: boolean;
 
   @Prop()
   syncError: string;
+
+  @Prop()
+  syncFailedAt: Date;
+
+  @Prop()
+  syncRetriedAt: Date;
+
+  @Prop()
+  pynbookingId: string;
+
+  // Manual resolution
+  @Prop({ default: false })
+  manuallyResolved: boolean;
+
+  @Prop()
+  resolvedAt: Date;
+
+  @Prop()
+  resolvedNotes: string;
 }
 
 export const ReservationSchema = SchemaFactory.createForClass(Reservation);

@@ -1,4 +1,4 @@
-import {Controller,Post,Body,ValidationPipe,BadRequestException,Req,Headers,Inject,UseGuards,} from '@nestjs/common';
+import {Controller,Post,Body,ValidationPipe,BadRequestException,Req,Headers,Inject,UseGuards,ConflictException,Logger,} from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { Stripe } from 'stripe';
 import { PaymentsService } from './payments.service';
@@ -7,15 +7,18 @@ import { ReservationService } from '../reservation/reservation.service';
 import { CreateReservationDto } from '../reservation/dto/reservation.dto';
 import { ApiKeyGuard } from '../security/guard';
 import { ApartmentService } from '../apartments/apartment.service';
+import { RoomLockService } from '../room-lock/room-lock.service';
 
 @Controller('/api/payments')
 export class PaymentsController {
+  private readonly logger = new Logger(PaymentsController.name);
   private readonly webhookSecret: string;
 
   constructor(
     private readonly paymentsService: PaymentsService,
     private readonly reservationService: ReservationService,
     private readonly apartmentService: ApartmentService,
+    private readonly roomLockService: RoomLockService,
     @Inject('STRIPE_CLIENT') private readonly stripe: Stripe,
   ) {
     this.webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -27,17 +30,92 @@ export class PaymentsController {
     @Body(new ValidationPipe()) dto: CreatePaymentIntentDto,
   ) {
     const apartment = await this.apartmentService.findOne(dto.apartment);
+    
+    const roomType = (apartment as any).roomType || apartment.roomId?.toString() || '';
+    const checkInDate = dto.checkInDate;
+    const checkOutDate = dto.checkOutDate;
+
+    if (!roomType) {
+      throw new BadRequestException('Apartamentul nu are roomType configurat');
+    }
+
+    // Step 1: Check if there's already an active lock
+    const existingLock = await this.roomLockService.findActiveLock(
+      roomType,
+      checkInDate,
+      checkOutDate,
+    );
+
+    if (existingLock) {
+      throw new ConflictException(
+        'Camera este în curs de rezervare de alt utilizator. Vă rugăm să încercați în câteva minute.',
+      );
+    }
+
+    // Step 2: Verify availability with PynBooking
+    try {
+      const availabilityResult = await this.reservationService.checkAvailability({
+        roomType,
+        checkInDate,
+        checkOutDate,
+        currency: dto.currency || 'RON',
+      });
+
+      if (!availabilityResult.available) {
+        throw new BadRequestException(
+          availabilityResult.message || 'Camera nu este disponibilă pentru datele selectate',
+        );
+      }
+    } catch (error: any) {
+      if (error instanceof BadRequestException || error instanceof ConflictException) {
+        throw error;
+      }
+      // Availability check might fail due to network - continue with caution
+      this.logger.warn(`Availability check failed: ${error.message}`);
+    }
+
+    // Step 3: Create PaymentIntent first to get the ID
     const metadata = {
       ...dto.metadata,
       hotelId: apartment.hotelId || dto.hotelId || '',
+      roomType,
     };
 
-    return this.paymentsService.createPaymentIntent({
+    const paymentIntentResult = await this.paymentsService.createPaymentIntent({
       amount: dto.amount,
       metadata: metadata,
       currency: dto.currency || 'ron',
       stripeAccountId: apartment.stripeAccountId,
     });
+
+    // Step 4: Create the lock with PaymentIntent ID
+    try {
+      await this.roomLockService.createLock({
+        roomType,
+        checkInDate,
+        checkOutDate,
+        paymentIntentId: paymentIntentResult.paymentIntentId,
+        apartmentId: dto.apartment,
+        guestName: dto.guestName,
+        guestEmail: dto.guestEmail,
+        guestPhone: dto.guestPhone,
+        ttlMinutes: 15,
+      });
+    } catch (lockError: any) {
+      this.logger.error(`Failed to create lock: ${lockError.message}`);
+      
+      try {
+        await this.stripe.paymentIntents.cancel(paymentIntentResult.paymentIntentId);
+      } catch (cancelError) {
+        // Ignore cancel errors
+      }
+
+      throw new ConflictException(
+        'Camera este în curs de rezervare de alt utilizator. Vă rugăm să încercați în câteva minute.',
+      );
+    }
+
+    return paymentIntentResult;
   }
 
   @Post('webhook')
@@ -70,7 +148,9 @@ export class PaymentsController {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         const metadata = paymentIntent.metadata;
         const apartmentId = metadata.apartment;
+        
         if (!apartmentId) {
+          await this.roomLockService.deleteLock(paymentIntent.id);
           break;
         }
 
@@ -78,8 +158,11 @@ export class PaymentsController {
         try {
           apartment = await this.apartmentService.findOne(apartmentId);
         } catch (error: any) {
+          this.logger.error(`Failed to find apartment: ${error.message}`);
+          await this.roomLockService.deleteLock(paymentIntent.id);
           break;
         }
+
         const checkIn = new Date(metadata.checkInDate);
         const checkOut = new Date(metadata.checkOutDate);
         const daysDiff = Math.ceil(
@@ -117,19 +200,37 @@ export class PaymentsController {
           rooms: rooms,
         };
 
+        // Check if reservation already exists
         const existingReservation =
           await this.reservationService.findByPaymentIntentId(paymentIntent.id);
 
         if (existingReservation) {
+          await this.roomLockService.deleteLock(paymentIntent.id);
           break;
         }
         
-        await this.reservationService.create(reservationDto, apartmentId);
+        // Create reservation
+        try {
+          await this.reservationService.create(reservationDto, apartmentId);
+        } catch (reservationError: any) {
+          this.logger.error(`Failed to create reservation: ${reservationError.message}`);
+        }
+
+        // Always delete the lock after processing
+        await this.roomLockService.deleteLock(paymentIntent.id);
 
         break;
       }
 
       case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        await this.roomLockService.deleteLock(paymentIntent.id);
+        break;
+      }
+
+      case 'payment_intent.canceled': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        await this.roomLockService.deleteLock(paymentIntent.id);
         break;
       }
 

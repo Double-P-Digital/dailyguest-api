@@ -54,6 +54,7 @@ export class PaymentsService {
 
       return {
         clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
       };
     } catch (error: any) {
       const errorMessage = error.message || '';

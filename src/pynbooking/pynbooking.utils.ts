@@ -11,11 +11,13 @@ export class PynbookingFactory {
     const rooms: Room[] = dto.rooms.map((r: CreateReservationRoomDto) => {
       const start = new Date(dto.checkInDate);
 
-      const pricePerDay = r.pricePerDay.map((price, idx) => {
+      // Build pricePerDay as a single object { "2026-12-04": 240, "2026-12-05": 240 }
+      const pricePerDayObj: Record<string, number> = {};
+      r.pricePerDay.forEach((price, idx) => {
         const day = new Date(start);
         day.setDate(day.getDate() + idx);
         const dateStr = day.toISOString().split('T')[0];
-        return { [dateStr]: price };
+        pricePerDayObj[dateStr] = price;
       });
 
       return {
@@ -23,7 +25,7 @@ export class PynbookingFactory {
         planId: r.planId,
         quantity: r.quantity,
         price: r.price,
-        pricePerDay,
+        pricePerDay: pricePerDayObj,
         noGuests: r.noGuests,
       };
     });

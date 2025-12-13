@@ -4,13 +4,17 @@ import { Type } from 'class-transformer';
 export class CheckAvailabilityDto {
   @Type(() => Number)
   @IsNumber()
+  @IsOptional()
+  hotelId?: number;
+
+  @IsString()
   @IsNotEmpty()
-  hotelId: number;
+  roomType: string;
 
   @Type(() => Number)
   @IsNumber()
-  @IsNotEmpty()
-  roomId: number;
+  @IsOptional()
+  roomId?: number;
 
   @IsDateString()
   @IsNotEmpty()

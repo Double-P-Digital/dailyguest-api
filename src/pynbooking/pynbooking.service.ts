@@ -3,6 +3,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -17,7 +18,9 @@ import {
 
 @Injectable()
 export class PynbookingService {
-  private readonly apiKey: string;
+  private readonly logger = new Logger(PynbookingService.name);
+  private readonly bookingApiKey: string;
+  private readonly searchApiKey: string;
   private readonly baseUrl = 'https://api.pynbooking.direct/booking/add/';
   private readonly searchUrl = 'https://api.pynbooking.com/reservation/search/';
 
@@ -25,7 +28,12 @@ export class PynbookingService {
     private readonly http: HttpService,
     private readonly config: ConfigService,
   ) {
-    this.apiKey = this.config.getOrThrow('PYNBOOKING_API_KEY');
+    this.bookingApiKey =
+      this.config.get<string>('PYNBOOKING_BOOK_API_KEY') ||
+      this.config.getOrThrow<string>('PYNBOOKING_API_KEY');
+    this.searchApiKey =
+      this.config.get<string>('PYNBOOKING_SEARCH_API_KEY') ||
+      this.config.getOrThrow<string>('PYNBOOKING_API_KEY');
   }
 
   async sendReservation(
@@ -37,17 +45,40 @@ export class PynbookingService {
 
       const url = this.baseUrl;
 
+      // Convert payload to URL-encoded format (PynBooking requires x-www-form-urlencoded)
+      const formData = new URLSearchParams();
+      formData.append('arrivalDate', payload.arrivalDate);
+      formData.append('departureDate', payload.departureDate);
+      formData.append('guestName', payload.guestName);
+      formData.append('guestEmail', payload.guestEmail);
+      // Phone should include country code prefix
+      const phone = payload.guestPhone.startsWith('+') ? payload.guestPhone : `+40${payload.guestPhone}`;
+      formData.append('guestPhone', phone);
+      formData.append('guestCountryCode', payload.guestCountryCode);
+      formData.append('guestCity', payload.guestCity);
+      formData.append('guestAddress', payload.guestAddress);
+      formData.append('currency', payload.currency);
+      formData.append('language', payload.language);
+      formData.append('totalPrice', payload.totalPrice.toString());
+      if (payload.hotelId) {
+        formData.append('hotelId', payload.hotelId.toString());
+      }
+      
+      // Rooms as JSON string (PynBooking expects this format)
+      formData.append('rooms', JSON.stringify(payload.rooms));
+
       const response = await firstValueFrom(
-        this.http.post<PynbookingConfirmPaidResponse>(url, payload, {
+        this.http.post<PynbookingConfirmPaidResponse>(url, formData.toString(), {
           headers: {
-            'Api-Key': this.apiKey,
-            'Content-Type': 'application/json',
+            'Api-Key': this.bookingApiKey,
+            'Content-Type': 'application/x-www-form-urlencoded',
           },
         }),
       );
 
       return response.data;
     } catch (error: any) {
+      this.logger.error(`Reservation failed: ${error?.response?.data?.detail || error?.message}`);
 
       const errorMessage = error?.response?.data?.message || 
                           error?.response?.data?.detail ||
@@ -84,7 +115,7 @@ export class PynbookingService {
           formData.toString(),
           {
             headers: {
-              'Api-Key': this.apiKey,
+              'Api-Key': this.searchApiKey,
               'Content-Type': 'application/x-www-form-urlencoded',
             },
           },
@@ -93,7 +124,6 @@ export class PynbookingService {
 
       return response.data;
     } catch (error: any) {
-
       const errorMessage =
         error?.response?.data?.message ||
         error?.response?.data?.detail ||
@@ -107,8 +137,8 @@ export class PynbookingService {
   }
 
   async checkAvailability(params: {
-    hotelId: number;
-    roomId: number;
+    hotelId?: number;
+    roomType: string;
     checkInDate: string;
     checkOutDate: string;
     currency: string;
@@ -135,7 +165,7 @@ export class PynbookingService {
       const formData = new URLSearchParams();
       formData.append('date', params.checkInDate);
       formData.append('days', days.toString());
-      formData.append('roomNo', params.roomId.toString());
+      formData.append('roomNo', params.roomType);
 
       const response = await firstValueFrom(
         this.http.post<PynBookingReservation[]>(
@@ -143,7 +173,7 @@ export class PynbookingService {
           formData.toString(),
           {
             headers: {
-              'Api-Key': this.apiKey,
+              'Api-Key': this.searchApiKey,
               'Content-Type': 'application/x-www-form-urlencoded',
             },
           },
@@ -151,18 +181,26 @@ export class PynbookingService {
       );
 
       const reservations: PynBookingReservation[] = response.data;
+      const roomName = params.roomType;
 
-      const roomName = params.roomId.toString();
       const overlappingReservations = reservations.filter((reservation) => {
         const resCheckIn = new Date(reservation.checkInDate);
         const resCheckOut = new Date(reservation.checkOutDate);
 
-        return (
-          checkIn < resCheckOut &&
-          checkOut > resCheckIn &&
-          reservation.roomName === roomName &&
-          reservation.status === 'Confirmed'
-        );
+        // Check date overlap
+        const datesOverlap = checkIn < resCheckOut && checkOut > resCheckIn;
+        
+        // Check room match
+        const roomTypeMatch = (reservation as any).roomType === roomName;
+        const roomNameMatch = reservation.roomName === roomName;
+        const roomNameContains = reservation.roomName?.toLowerCase().includes(roomName.toLowerCase());
+        const roomNameMatches = roomTypeMatch || roomNameMatch || roomNameContains;
+        
+        // Check status
+        const statusLower = reservation.status?.toLowerCase() || '';
+        const isConfirmed = statusLower === 'confirmed' || statusLower === 'confirmata' || statusLower === 'confirmată';
+
+        return datesOverlap && roomNameMatches && isConfirmed;
       });
 
       const hasOverlap = overlappingReservations.length > 0;

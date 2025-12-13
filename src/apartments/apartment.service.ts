@@ -15,13 +15,19 @@ export class ApartmentService {
   ) {}
 
   async findAll(): Promise<Apartment[]> {
-    const apartments = await this.apartmentModel.find().exec();
+    const apartments = await this.apartmentModel
+      .find()
+      .sort({ displayOrder: 1 })
+      .exec();
 
     return apartments.map((apt) => mapDocumentToDto(apt));
   }
 
   async findByCity(city: string): Promise<Apartment[]> {
-    const apartments = await this.apartmentModel.find({ city }).exec();
+    const apartments = await this.apartmentModel
+      .find({ city })
+      .sort({ displayOrder: 1 })
+      .exec();
 
     return apartments.map((apt) => mapDocumentToDto(apt));
   }
@@ -62,17 +68,11 @@ export class ApartmentService {
   // }
   async update(id: string, apartmentDto: ApartmentDto): Promise<Apartment> {
     try {
-      console.log('UPDATE: id param =', id);
-      console.log('UPDATE: apartmentDto =', apartmentDto);
-
       const { id: dtoId, ...updateData } = apartmentDto;
-      console.log('UPDATE: updateData (without id) =', updateData);
 
       const updatedApartment = await this.apartmentModel
         .findByIdAndUpdate(id, updateData, { new: true })
         .exec();
-
-      console.log('UPDATE: result =', updatedApartment);
 
       if (!updatedApartment) {
         throw new NotFoundException(`Apartment with ID ${id} not found`);
@@ -80,7 +80,6 @@ export class ApartmentService {
 
       return mapDocumentToDto(updatedApartment);
     } catch (error) {
-      console.error('UPDATE ERROR:', error);
       handleDbError(error);
     }
   }

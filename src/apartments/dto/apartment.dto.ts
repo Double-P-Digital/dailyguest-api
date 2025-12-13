@@ -13,6 +13,9 @@ export class ApartmentDto {
   readonly hotelId: string;
 
   @IsString()
+  readonly roomType: string;
+
+  @IsString()
   readonly roomId: string;
 
   @IsOptional()
@@ -47,4 +50,8 @@ export class ApartmentDto {
 
   @IsString()
   readonly stripeAccountId: string;
+
+  @IsOptional()
+  @IsNumber()
+  readonly displayOrder?: number;
 }

@@ -6,6 +6,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { ReservationModule } from './reservation/reservation.module';
 import { AuthModule } from './auth/auth.module';
 import { DiscountCodeModule } from './discountCodes/discountCode.module';
+import { RoomLockModule } from './room-lock/room-lock.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { DiscountCodeModule } from './discountCodes/discountCode.module';
     ReservationModule,
     AuthModule,
     DiscountCodeModule,
+    RoomLockModule,
   ],
   providers: [],
   controllers: [],

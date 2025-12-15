@@ -190,7 +190,7 @@ export class PaymentsController {
           : [
               {
                 roomId: Number(apartment.roomId),
-                planId: 11, 
+                planId: 1, 
                 quantity: 1,
                 currency: currency,
                 price: totalPrice,

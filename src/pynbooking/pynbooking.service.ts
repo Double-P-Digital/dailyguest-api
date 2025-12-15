@@ -69,8 +69,22 @@ export class PynbookingService {
         formData.append('hotelId', payload.hotelId.toString());
       }
       
-      // Rooms as JSON string (PynBooking expects this format)
-      formData.append('rooms', JSON.stringify(payload.rooms));
+      // confirmUrl is required by PynBooking (can be empty string)
+      formData.append('confirmUrl', '');
+      
+      // Rooms in array notation format (PynBooking expects rooms[0][field]=value format)
+      payload.rooms.forEach((room, index) => {
+        formData.append(`rooms[${index}][roomId]`, room.roomId.toString());
+        formData.append(`rooms[${index}][planId]`, room.planId.toString());
+        formData.append(`rooms[${index}][quantity]`, room.quantity.toString());
+        formData.append(`rooms[${index}][price]`, room.price.toString());
+        formData.append(`rooms[${index}][noGuests]`, room.noGuests.toString());
+        
+        // pricePerDay in format rooms[0][pricePerDay][2025-12-15]=230
+        Object.entries(room.pricePerDay).forEach(([date, price]) => {
+          formData.append(`rooms[${index}][pricePerDay][${date}]`, price.toString());
+        });
+      });
 
       this.logger.log(`[SendReservation] URL: ${url}`);
       this.logger.log(`[SendReservation] API Key (first 10 chars): ${this.bookingApiKey?.substring(0, 10)}...`);
@@ -86,7 +100,18 @@ export class PynbookingService {
       this.logger.log(`  - language: ${payload.language}`);
       this.logger.log(`  - totalPrice: ${payload.totalPrice}`);
       this.logger.log(`  - hotelId: ${payload.hotelId || 'NOT SET'}`);
-      this.logger.log(`  - rooms: ${JSON.stringify(payload.rooms)}`);
+      this.logger.log(`  - confirmUrl: (empty string)`);
+      this.logger.log(`  - rooms (array notation):`);
+      payload.rooms.forEach((room, index) => {
+        this.logger.log(`    rooms[${index}][roomId]=${room.roomId}`);
+        this.logger.log(`    rooms[${index}][planId]=${room.planId}`);
+        this.logger.log(`    rooms[${index}][quantity]=${room.quantity}`);
+        this.logger.log(`    rooms[${index}][price]=${room.price}`);
+        this.logger.log(`    rooms[${index}][noGuests]=${room.noGuests}`);
+        Object.entries(room.pricePerDay).forEach(([date, price]) => {
+          this.logger.log(`    rooms[${index}][pricePerDay][${date}]=${price}`);
+        });
+      });
       this.logger.log(`[SendReservation] Full FormData string: ${formData.toString()}`);
 
       const response = await firstValueFrom(

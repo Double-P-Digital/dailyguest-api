@@ -39,14 +39,9 @@ export class PynbookingService {
   async sendReservation(
     reservationDto: CreateReservationDto,
   ): Promise<PynbookingConfirmPaidResponse> {
-    this.logger.log(`\n========== PYNBOOKING SEND RESERVATION ==========`);
-    this.logger.log(`[SendReservation] Input DTO: ${JSON.stringify(reservationDto, null, 2)}`);
-    
     try {
       const payload: PynbookingCreateReservationDto =
         PynbookingFactory.buildReservationPayload(reservationDto);
-
-      this.logger.log(`[SendReservation] Built payload: ${JSON.stringify(payload, null, 2)}`);
 
       const url = this.baseUrl;
 
@@ -60,7 +55,6 @@ export class PynbookingService {
       const phone = payload.guestPhone.startsWith('+') ? payload.guestPhone : `+40${payload.guestPhone}`;
       formData.append('guestPhone', phone);
       formData.append('guestCountryCode', payload.guestCountryCode);
-      // guestCity is optional - not sending it
       formData.append('guestAddress', payload.guestAddress);
       formData.append('currency', payload.currency);
       formData.append('language', payload.language);
@@ -86,34 +80,6 @@ export class PynbookingService {
         });
       });
 
-      this.logger.log(`[SendReservation] URL: ${url}`);
-      this.logger.log(`[SendReservation] API Key (first 10 chars): ${this.bookingApiKey?.substring(0, 10)}...`);
-      this.logger.log(`[SendReservation] FormData fields:`);
-      this.logger.log(`  - arrivalDate: ${payload.arrivalDate}`);
-      this.logger.log(`  - departureDate: ${payload.departureDate}`);
-      this.logger.log(`  - guestName: ${payload.guestName}`);
-      this.logger.log(`  - guestEmail: ${payload.guestEmail}`);
-      this.logger.log(`  - guestPhone: ${phone}`);
-      this.logger.log(`  - guestCountryCode: ${payload.guestCountryCode}`);
-      this.logger.log(`  - guestAddress: ${payload.guestAddress}`);
-      this.logger.log(`  - currency: ${payload.currency}`);
-      this.logger.log(`  - language: ${payload.language}`);
-      this.logger.log(`  - totalPrice: ${payload.totalPrice}`);
-      this.logger.log(`  - hotelId: ${payload.hotelId || 'NOT SET'}`);
-      this.logger.log(`  - confirmUrl: (empty string)`);
-      this.logger.log(`  - rooms (array notation):`);
-      payload.rooms.forEach((room, index) => {
-        this.logger.log(`    rooms[${index}][roomId]=${room.roomId}`);
-        this.logger.log(`    rooms[${index}][planId]=${room.planId}`);
-        this.logger.log(`    rooms[${index}][quantity]=${room.quantity}`);
-        this.logger.log(`    rooms[${index}][price]=${room.price}`);
-        this.logger.log(`    rooms[${index}][noGuests]=${room.noGuests}`);
-        Object.entries(room.pricePerDay).forEach(([date, price]) => {
-          this.logger.log(`    rooms[${index}][pricePerDay][${date}]=${price}`);
-        });
-      });
-      this.logger.log(`[SendReservation] Full FormData string: ${formData.toString()}`);
-
       const response = await firstValueFrom(
         this.http.post<PynbookingConfirmPaidResponse>(url, formData.toString(), {
           headers: {
@@ -123,20 +89,9 @@ export class PynbookingService {
         }),
       );
 
-      this.logger.log(`[SendReservation] ✅ SUCCESS!`);
-      this.logger.log(`[SendReservation] Response status: ${response.status}`);
-      this.logger.log(`[SendReservation] Response data: ${JSON.stringify(response.data, null, 2)}`);
-      this.logger.log(`========== END PYNBOOKING SEND RESERVATION ==========\n`);
       return response.data;
     } catch (error: any) {
-      this.logger.error(`[SendReservation] ❌ FAILED!`);
-      this.logger.error(`[SendReservation] Error status: ${error?.response?.status}`);
-      this.logger.error(`[SendReservation] Error statusText: ${error?.response?.statusText}`);
-      this.logger.error(`[SendReservation] Error headers: ${JSON.stringify(error?.response?.headers)}`);
-      this.logger.error(`[SendReservation] Error data (raw): ${JSON.stringify(error?.response?.data)}`);
-      this.logger.error(`[SendReservation] Error message: ${error?.message}`);
-      this.logger.error(`[SendReservation] Error stack: ${error?.stack}`);
-      this.logger.error(`========== END PYNBOOKING SEND RESERVATION (ERROR) ==========\n`);
+      this.logger.error(`PynBooking sendReservation failed: ${error?.message}`);
 
       const errorMessage = error?.response?.data?.message || 
                           error?.response?.data?.detail ||

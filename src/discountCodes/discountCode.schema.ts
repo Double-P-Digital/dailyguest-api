@@ -17,7 +17,7 @@ export class DiscountCode {
   @Prop({ required: true })
   value: number; // Preț fix sau procentaj (0-100)
 
-  @Prop({ required: true, default: 'EUR' })
+  @Prop({ required: true, default: 'RON' })
   currency: string;
 
   @Prop({ required: true })

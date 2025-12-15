@@ -27,16 +27,11 @@ export class ReservationService {
     reservationDto: CreateReservationDto,
     apartmentId?: string,
   ): Promise<PynbookingConfirmPaidResponse | null> {
-    this.logger.log(`\n========== RESERVATION CREATE ==========`);
-    this.logger.log(`[Create] Received reservationDto: ${JSON.stringify(reservationDto, null, 2)}`);
-    this.logger.log(`[Create] ApartmentId: ${apartmentId || 'NOT PROVIDED'}`);
-
     const existing = await this.reservationModel.findOne({ 
       paymentIntentId: reservationDto.paymentIntentId 
     });
     
     if (existing) {
-      this.logger.warn(`[Create] Reservation already exists for paymentIntentId: ${reservationDto.paymentIntentId}`);
       throw new InternalServerErrorException('Reservation already exists');
     }
 
@@ -55,7 +50,7 @@ export class ReservationService {
         rooms: reservationDto.rooms,
         currency: reservationDto.rooms?.[0]?.currency || 'RON',
         status: 'confirmed',
-        syncFailed: false, // Will be updated if PynBooking sync fails
+        syncFailed: false,
         syncError: null,
       };
 
@@ -63,9 +58,7 @@ export class ReservationService {
         reservationData.apartment = apartmentId;
       }
 
-      this.logger.log(`[Create] Saving to DB: ${JSON.stringify(reservationData, null, 2)}`);
       savedReservation = await this.reservationModel.create(reservationData);
-      this.logger.log(`[Create] ✅ Reservation saved to DB with ID: ${savedReservation._id}`);
     } catch (dbError: any) {
       throw new InternalServerErrorException(
         `Failed to save reservation to DB: ${dbError?.message}`,
@@ -73,12 +66,9 @@ export class ReservationService {
     }
 
     // Try to sync with PynBooking
-    this.logger.log(`[Create] Starting PynBooking sync...`);
     let pynbookingResponse: PynbookingConfirmPaidResponse | null = null;
     try {
       pynbookingResponse = await this.pynbookingService.sendReservation(reservationDto);
-      this.logger.log(`[Create] ✅ PynBooking sync successful for reservation: ${savedReservation._id}`);
-      this.logger.log(`[Create] PynBooking response: ${JSON.stringify(pynbookingResponse)}`);
       
       // Update reservation with PynBooking response if available
       if (pynbookingResponse) {
@@ -87,12 +77,9 @@ export class ReservationService {
           syncFailed: false,
           syncError: null,
         });
-        this.logger.log(`[Create] Updated reservation with PynBooking ID: ${pynbookingResponse.bookingId}`);
       }
     } catch (error: any) {
-      this.logger.error(`[Create] ❌ PynBooking sync FAILED for reservation: ${savedReservation._id}`);
-      this.logger.error(`[Create] Error message: ${error.message}`);
-      this.logger.error(`[Create] Full error: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`);
+      this.logger.error(`PynBooking sync failed for reservation ${savedReservation._id}: ${error.message}`);
       
       // Mark reservation as sync failed
       await this.reservationModel.findByIdAndUpdate(savedReservation._id, {
@@ -100,10 +87,8 @@ export class ReservationService {
         syncError: error.message || 'Unknown PynBooking sync error',
         syncFailedAt: new Date(),
       });
-      this.logger.warn(`[Create] Reservation marked as syncFailed in DB`);
     }
     
-    this.logger.log(`========== END RESERVATION CREATE ==========\n`);
     return pynbookingResponse;
   }
 
@@ -114,13 +99,9 @@ export class ReservationService {
   async checkAvailability(
     params: CheckAvailabilityDto,
   ): Promise<CheckAvailabilityResponse> {
-    this.logger.log(`[CheckAvailability] Called with params: ${JSON.stringify(params)}`);
-    
     const roomType = params.roomType ?? (params.roomId ? params.roomId.toString() : '');
-    this.logger.log(`[CheckAvailability] Using roomType: "${roomType}"`);
 
     if (!roomType) {
-      this.logger.warn('[CheckAvailability] No roomType provided, returning available=true');
       return {
         available: true,
         message: 'Nu s-a putut verifica disponibilitatea (roomType lipsă)',
@@ -135,14 +116,11 @@ export class ReservationService {
     );
 
     if (hasLock) {
-      this.logger.log(`[CheckAvailability] Active lock found for ${roomType} (${params.checkInDate} - ${params.checkOutDate})`);
       return {
         available: false,
         message: 'Camera este în curs de rezervare de alt utilizator',
       };
     }
-
-    this.logger.log(`[CheckAvailability] No active lock, checking PynBooking...`);
 
     // Step 2: Check PynBooking for existing reservations
     return this.pynbookingService.checkAvailability({

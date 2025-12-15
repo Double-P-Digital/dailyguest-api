@@ -2,7 +2,6 @@ import {
   IsString,
   IsEmail,
   IsNotEmpty,
-  IsDateString,
   IsNumber,
   IsMongoId,
   Min,
@@ -24,11 +23,11 @@ export class CreatePaymentIntentDto {
   @IsNotEmpty()
   guestEmail: string;
 
-  @IsDateString()
+  @IsString()
   @IsNotEmpty()
   checkInDate: string;
 
-  @IsDateString()
+  @IsString()
   @IsNotEmpty()
   checkOutDate: string;
 

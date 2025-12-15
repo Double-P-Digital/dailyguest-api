@@ -1,4 +1,4 @@
-import {IsString,IsNotEmpty,IsDateString,IsNumber,IsOptional,} from 'class-validator';
+import {IsString,IsNotEmpty,IsNumber,IsOptional,} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CheckAvailabilityDto {
@@ -16,11 +16,11 @@ export class CheckAvailabilityDto {
   @IsOptional()
   roomId?: number;
 
-  @IsDateString()
+  @IsString()
   @IsNotEmpty()
   checkInDate: string;
 
-  @IsDateString()
+  @IsString()
   @IsNotEmpty()
   checkOutDate: string;
 

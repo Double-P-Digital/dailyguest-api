@@ -2,7 +2,6 @@ import {
   IsString,
   IsEmail,
   IsNotEmpty,
-  IsDateString,
   IsNumber,
   Min,
   IsArray,
@@ -53,11 +52,11 @@ export class CreateReservationDto {
   @IsNotEmpty()
   guestEmail: string;
 
-  @IsDateString()
+  @IsString()
   @IsNotEmpty()
   checkInDate: string;
 
-  @IsDateString()
+  @IsString()
   @IsNotEmpty()
   checkOutDate: string;
 

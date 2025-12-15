@@ -20,6 +20,9 @@ export class Reservation extends Document {
   guestPhone: string;
 
   @Prop({ required: true })
+  guestAddress: string;
+
+  @Prop({ required: true })
   checkInDate: Date;
 
   @Prop({ required: true })

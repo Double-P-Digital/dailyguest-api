@@ -14,7 +14,6 @@ export type PynbookingCreateReservationDto = {
   guestEmail: string;
   guestPhone: string;
   guestCountryCode: string;
-  guestCity: string;
   guestAddress: string;
   currency: string;
   language: string;

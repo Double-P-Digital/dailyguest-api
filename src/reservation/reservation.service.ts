@@ -27,12 +27,16 @@ export class ReservationService {
     reservationDto: CreateReservationDto,
     apartmentId?: string,
   ): Promise<PynbookingConfirmPaidResponse | null> {
+    this.logger.log(`\n========== RESERVATION CREATE ==========`);
+    this.logger.log(`[Create] Received reservationDto: ${JSON.stringify(reservationDto, null, 2)}`);
+    this.logger.log(`[Create] ApartmentId: ${apartmentId || 'NOT PROVIDED'}`);
 
     const existing = await this.reservationModel.findOne({ 
       paymentIntentId: reservationDto.paymentIntentId 
     });
     
     if (existing) {
+      this.logger.warn(`[Create] Reservation already exists for paymentIntentId: ${reservationDto.paymentIntentId}`);
       throw new InternalServerErrorException('Reservation already exists');
     }
 
@@ -43,6 +47,7 @@ export class ReservationService {
         guestName: reservationDto.guestName,
         guestEmail: reservationDto.guestEmail,
         guestPhone: reservationDto.guestPhone,
+        guestAddress: reservationDto.guestAddress,
         checkInDate: new Date(reservationDto.checkInDate),
         checkOutDate: new Date(reservationDto.checkOutDate),
         totalPrice: reservationDto.totalPrice,
@@ -58,8 +63,9 @@ export class ReservationService {
         reservationData.apartment = apartmentId;
       }
 
+      this.logger.log(`[Create] Saving to DB: ${JSON.stringify(reservationData, null, 2)}`);
       savedReservation = await this.reservationModel.create(reservationData);
-      this.logger.log(`Reservation saved to DB: ${savedReservation._id}`);
+      this.logger.log(`[Create] ✅ Reservation saved to DB with ID: ${savedReservation._id}`);
     } catch (dbError: any) {
       throw new InternalServerErrorException(
         `Failed to save reservation to DB: ${dbError?.message}`,
@@ -67,10 +73,12 @@ export class ReservationService {
     }
 
     // Try to sync with PynBooking
+    this.logger.log(`[Create] Starting PynBooking sync...`);
     let pynbookingResponse: PynbookingConfirmPaidResponse | null = null;
     try {
       pynbookingResponse = await this.pynbookingService.sendReservation(reservationDto);
-      this.logger.log(`PynBooking sync successful for reservation: ${savedReservation._id}`);
+      this.logger.log(`[Create] ✅ PynBooking sync successful for reservation: ${savedReservation._id}`);
+      this.logger.log(`[Create] PynBooking response: ${JSON.stringify(pynbookingResponse)}`);
       
       // Update reservation with PynBooking response if available
       if (pynbookingResponse) {
@@ -79,9 +87,12 @@ export class ReservationService {
           syncFailed: false,
           syncError: null,
         });
+        this.logger.log(`[Create] Updated reservation with PynBooking ID: ${pynbookingResponse.bookingId}`);
       }
     } catch (error: any) {
-      this.logger.error(`PynBooking sync FAILED for reservation: ${savedReservation._id}`, error.message);
+      this.logger.error(`[Create] ❌ PynBooking sync FAILED for reservation: ${savedReservation._id}`);
+      this.logger.error(`[Create] Error message: ${error.message}`);
+      this.logger.error(`[Create] Full error: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`);
       
       // Mark reservation as sync failed
       await this.reservationModel.findByIdAndUpdate(savedReservation._id, {
@@ -89,8 +100,10 @@ export class ReservationService {
         syncError: error.message || 'Unknown PynBooking sync error',
         syncFailedAt: new Date(),
       });
+      this.logger.warn(`[Create] Reservation marked as syncFailed in DB`);
     }
     
+    this.logger.log(`========== END RESERVATION CREATE ==========\n`);
     return pynbookingResponse;
   }
 
@@ -182,6 +195,7 @@ export class ReservationService {
         guestName: reservation.guestName,
         guestEmail: reservation.guestEmail,
         guestPhone: reservation.guestPhone,
+        guestAddress: reservation.guestAddress || 'N/A',
         checkInDate: reservation.checkInDate.toISOString().split('T')[0],
         checkOutDate: reservation.checkOutDate.toISOString().split('T')[0],
         totalPrice: reservation.totalPrice,

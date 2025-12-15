@@ -73,6 +73,10 @@ export class CreateReservationDto {
   @IsNotEmpty()
   guestPhone: string;
 
+  @IsString()
+  @IsNotEmpty()
+  guestAddress: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateReservationRoomDto)

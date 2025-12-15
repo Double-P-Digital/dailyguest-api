@@ -190,7 +190,7 @@ export class PaymentsController {
           : [
               {
                 roomId: Number(apartment.roomId),
-                planId: 1, 
+                planId: 11, 
                 quantity: 1,
                 currency: currency,
                 price: totalPrice,
@@ -208,6 +208,7 @@ export class PaymentsController {
           totalPrice: totalPrice,
           paymentIntentId: paymentIntent.id,
           guestPhone: metadata.guestPhone || '0000000000',
+          guestAddress: metadata.guestAddress || 'N/A',
           rooms: rooms,
         };
 

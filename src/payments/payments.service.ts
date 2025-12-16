@@ -32,21 +32,15 @@ export class PaymentsService {
       }
       const validCurrency = 'ron';
 
-      // Stripe fee pentru carduri EU: ~1.4% + 0.25€ (~1.25 RON)
-      // Folosim o estimare conservatoare: 1.7% + 1.25 RON fix
-      const estimatedStripeFee = amount * 0.017 + 1.25;
-      
-      // Net după ce Stripe își ia fee-ul
-      const netAmount = amount - estimatedStripeFee;
-      
-      // Platforma primește 7% din net (curat, după Stripe fees)
+      // Stripe fee estimat: ~1.8% + 1.25 RON fix (carduri EU)
+      const estimatedStripeFee = amount * 0.018 + 1.25;      
       const platformFeePercentage = 0.07;
-      const platformNetShare = netAmount * platformFeePercentage;
+      const stripeFeeSharePercentage = 0.50; 
       
-      // Application fee = ce vrem să primim NET + Stripe fee
-      // Astfel: platformNetShare = applicationFee - stripeFee
-      // Deci: applicationFee = platformNetShare + stripeFee
-      const applicationFeeAmount = Math.round((platformNetShare + estimatedStripeFee) * 100);
+      // Application fee = 7% din total - 50% din Stripe fee
+      const platformGrossShare = amount * platformFeePercentage;
+      const platformStripeFeeShare = estimatedStripeFee * stripeFeeSharePercentage;
+      const applicationFeeAmount = Math.round((platformGrossShare - platformStripeFeeShare) * 100);
 
       const paymentIntent = await this.stripe.paymentIntents.create({
         amount: Math.round(amount * 100),

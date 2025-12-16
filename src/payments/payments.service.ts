@@ -40,7 +40,8 @@ export class PaymentsService {
       // Application fee = 7% din total - 50% din Stripe fee
       const platformGrossShare = amount * platformFeePercentage;
       const platformStripeFeeShare = estimatedStripeFee * stripeFeeSharePercentage;
-      const applicationFeeAmount = Math.round((platformGrossShare - platformStripeFeeShare) * 100);
+      // Asigură că application fee nu e negativ (pentru sume mici cu discount mare)
+      const applicationFeeAmount = Math.max(0, Math.round((platformGrossShare - platformStripeFeeShare) * 100));
 
       const paymentIntent = await this.stripe.paymentIntents.create({
         amount: Math.round(amount * 100),

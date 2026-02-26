@@ -36,6 +36,10 @@ export class ApartmentDto {
 
   @IsString()
   @IsOptional()
+  readonly currency?: string;
+
+  @IsString()
+  @IsOptional()
   readonly description: string;
 
   @IsArray()

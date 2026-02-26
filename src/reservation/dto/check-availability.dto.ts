@@ -17,6 +17,10 @@ export class CheckAvailabilityDto {
   roomId?: number;
 
   @IsString()
+  @IsOptional()
+  apartmentId?: string;
+
+  @IsString()
   @IsNotEmpty()
   checkInDate: string;
 

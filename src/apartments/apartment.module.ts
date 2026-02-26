@@ -4,6 +4,8 @@ import { ApartmentController } from './apartment.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Apartment, ApartmentSchema } from './apartment.schema';
 import { Reservation, ReservationSchema } from '../reservation/reservation.schema';
+import { BlockedDate, BlockedDateSchema } from './blocked-date.schema';
+import { PriceOverride, PriceOverrideSchema } from './price-override.schema';
 
 @Module({
   imports: [
@@ -15,6 +17,14 @@ import { Reservation, ReservationSchema } from '../reservation/reservation.schem
       {
         name: Reservation.name,
         schema: ReservationSchema,
+      },
+      {
+        name: BlockedDate.name,
+        schema: BlockedDateSchema,
+      },
+      {
+        name: PriceOverride.name,
+        schema: PriceOverrideSchema,
       },
     ]),
   ],

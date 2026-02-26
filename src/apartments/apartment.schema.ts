@@ -18,6 +18,9 @@ export class Apartment {
   @Prop()
   price: number;
 
+  @Prop({ default: 'RON', uppercase: true })
+  currency: string;
+
   @Prop()
   maxGuests: number;
 

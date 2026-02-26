@@ -1,10 +1,10 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { CreateReservationDto } from './dto/reservation.dto';
 import { CheckAvailabilityDto } from './dto/check-availability.dto';
 import { SearchReservationsDto } from './dto/search-reservations.dto';
 import { Reservation } from './reservation.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { PynbookingService } from '../pynbooking/pynbooking.service';
 import {
   CheckAvailabilityResponse,
@@ -12,6 +12,9 @@ import {
   PynBookingReservation,
 } from '../pynbooking/types';
 import { RoomLockService } from '../room-lock/room-lock.service';
+import { BlockedDate } from '../apartments/blocked-date.schema';
+import { Apartment } from '../apartments/apartment.schema';
+import { PriceOverride, PriceOverrideDocument } from '../apartments/price-override.schema';
 
 @Injectable()
 export class ReservationService {
@@ -19,6 +22,9 @@ export class ReservationService {
 
   constructor(
     @InjectModel(Reservation.name) private reservationModel: Model<Reservation>,
+    @InjectModel(BlockedDate.name) private blockedDateModel: Model<BlockedDate>,
+    @InjectModel(Apartment.name) private apartmentModel: Model<Apartment>,
+    @InjectModel(PriceOverride.name) private priceOverrideModel: Model<PriceOverrideDocument>,
     private readonly pynbookingService: PynbookingService,
     private readonly roomLockService: RoomLockService,
   ) {}
@@ -33,6 +39,69 @@ export class ReservationService {
     
     if (existing) {
       throw new InternalServerErrorException('Reservation already exists');
+    }
+
+    // === GUARD: Re-verificare blocked dates la momentul creării rezervării ===
+    const checkIn = new Date(reservationDto.checkInDate);
+    const checkOut = new Date(reservationDto.checkOutDate);
+    const roomType = reservationDto.rooms?.[0]?.roomId?.toString() || '';
+    
+    if (roomType) {
+      const apartment = await this.apartmentModel.findOne({
+        $or: [
+          { roomType: roomType },
+          { roomId: roomType },
+          { name: roomType },
+        ],
+      }).exec();
+
+      if (apartment) {
+        // Verificare blocked dates
+        const blockedDates = await this.blockedDateModel.find({
+          apartmentId: apartment._id,
+          isActive: true,
+          startDate: { $lte: checkOut },
+          endDate: { $gte: checkIn },
+        }).exec();
+
+        if (blockedDates.length > 0) {
+          this.logger.warn(`[ReservationGuard] BLOCKED: Reservation attempt for ${apartment.name} blocked by admin dates`);
+          throw new BadRequestException(
+            'Perioada selectată a fost blocată de admin între timp. Vă rugăm să selectați alte date.',
+          );
+        }
+
+        // Re-calculare preț curent (cu overrides) și avertisment dacă diferă
+        const nightlyPrices: number[] = [];
+        const currentDate = new Date(checkIn);
+        while (currentDate < checkOut) {
+          const override = await this.priceOverrideModel.findOne({
+            apartmentId: apartment._id,
+            isActive: true,
+            startDate: { $lte: currentDate },
+            endDate: { $gte: currentDate },
+          }).sort({ createdAt: -1 }).exec();
+
+          nightlyPrices.push(override ? override.price : (apartment.price || 0));
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        const currentTotalPrice = nightlyPrices.reduce((sum, p) => sum + p, 0);
+        const submittedPrice = reservationDto.totalPrice;
+        
+        // Toleranță de 1% pentru diferențe de rotunjire
+        const priceDiff = Math.abs(currentTotalPrice - submittedPrice);
+        const tolerance = currentTotalPrice * 0.01;
+        
+        if (priceDiff > tolerance && currentTotalPrice > 0) {
+          this.logger.warn(
+            `[ReservationGuard] PRICE MISMATCH: ${apartment.name} - submitted: ${submittedPrice}, current: ${currentTotalPrice}`,
+          );
+          throw new BadRequestException(
+            `Prețul s-a modificat între timp. Prețul actual este ${currentTotalPrice} ${apartment.currency || 'EUR'}. Vă rugăm să reîncărcați pagina.`,
+          );
+        }
+      }
     }
 
     let savedReservation;
@@ -108,7 +177,38 @@ export class ReservationService {
       };
     }
 
-    // Step 1: Check for active locks in our system
+    // Step 1: Check for blocked dates (permanent blocks set by admin)
+    const checkInDate = new Date(params.checkInDate);
+    const checkOutDate = new Date(params.checkOutDate);
+    
+    // Căutăm apartamentul după roomType, roomId sau name
+    const apartment = await this.apartmentModel.findOne({
+      $or: [
+        { roomType: roomType },
+        { roomId: roomType },
+        { name: roomType },
+      ],
+    }).exec();
+    this.logger.log(`[BlockedDates] roomType="${roomType}" → apartment: ${apartment ? apartment.name + ' (id: ' + apartment._id + ')' : 'NOT FOUND'}`);
+    
+    if (apartment) {
+      const blockedDates = await this.blockedDateModel.find({
+        apartmentId: apartment._id,
+        isActive: true,
+        startDate: { $lte: checkOutDate },
+        endDate: { $gte: checkInDate },
+      }).exec();
+
+      if (blockedDates.length > 0) {
+        this.logger.log(`[BlockedDates] BLOCKED: ${blockedDates.length} blocked period(s) found for ${apartment.name}`);
+        return {
+          available: false,
+          message: 'Perioada selectată nu este disponibilă (date blocate de admin)',
+        };
+      }
+    }
+
+    // Step 2: Check for active locks in our system (temporary payment locks)
     const hasLock = await this.roomLockService.hasActiveLock(
       roomType,
       params.checkInDate,
@@ -122,7 +222,7 @@ export class ReservationService {
       };
     }
 
-    // Step 2: Check PynBooking for existing reservations
+    // Step 3: Check PynBooking for existing reservations
     return this.pynbookingService.checkAvailability({
       hotelId: params.hotelId ?? 0,
       roomType,

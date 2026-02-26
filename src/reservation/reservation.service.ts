@@ -15,6 +15,7 @@ import { RoomLockService } from '../room-lock/room-lock.service';
 import { BlockedDate } from '../apartments/blocked-date.schema';
 import { Apartment } from '../apartments/apartment.schema';
 import { PriceOverride, PriceOverrideDocument } from '../apartments/price-override.schema';
+import { DiscountCode, DiscountType } from '../discountCodes/discountCode.schema';
 
 @Injectable()
 export class ReservationService {
@@ -25,6 +26,7 @@ export class ReservationService {
     @InjectModel(BlockedDate.name) private blockedDateModel: Model<BlockedDate>,
     @InjectModel(Apartment.name) private apartmentModel: Model<Apartment>,
     @InjectModel(PriceOverride.name) private priceOverrideModel: Model<PriceOverrideDocument>,
+    @InjectModel(DiscountCode.name) private discountCodeModel: Model<DiscountCode>,
     private readonly pynbookingService: PynbookingService,
     private readonly roomLockService: RoomLockService,
   ) {}
@@ -32,6 +34,7 @@ export class ReservationService {
   async create(
     reservationDto: CreateReservationDto,
     apartmentId?: string,
+    promoCode?: string,
   ): Promise<PynbookingConfirmPaidResponse | null> {
     const existing = await this.reservationModel.findOne({ 
       paymentIntentId: reservationDto.paymentIntentId 
@@ -71,7 +74,7 @@ export class ReservationService {
           );
         }
 
-        // Re-calculare preț curent (cu overrides) și avertisment dacă diferă
+        // Re-calculare preț curent (cu overrides) și verificare cu discount code
         const nightlyPrices: number[] = [];
         const currentDate = new Date(checkIn);
         while (currentDate < checkOut) {
@@ -86,8 +89,49 @@ export class ReservationService {
           currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        const currentTotalPrice = nightlyPrices.reduce((sum, p) => sum + p, 0);
+        let currentTotalPrice = nightlyPrices.reduce((sum, p) => sum + p, 0);
         const submittedPrice = reservationDto.totalPrice;
+        
+        // Dacă avem promo code, recalculăm prețul așteptat cu discount-ul aplicat
+        if (promoCode && currentTotalPrice > 0) {
+          try {
+            const discountCode = await this.discountCodeModel.findOne({ 
+              code: promoCode.toUpperCase() 
+            }).exec();
+            
+            if (discountCode) {
+              const now = new Date();
+              const isValid = new Date(discountCode.expirationDate) >= now;
+              const isApplicable = !discountCode.apartmentIds?.length || 
+                discountCode.apartmentIds.some(id => id.toString() === apartment._id.toString());
+              
+              if (isValid && isApplicable) {
+                if (discountCode.discountType === DiscountType.FIXED) {
+                  // FIXED: valoarea e prețul pe noapte
+                  currentTotalPrice = discountCode.value * nightlyPrices.length;
+                } else {
+                  // PERCENTAGE: reduce totalul cu procentul
+                  const discountAmount = (currentTotalPrice * discountCode.value) / 100;
+                  currentTotalPrice = Math.max(0, currentTotalPrice - discountAmount);
+                }
+                currentTotalPrice = Math.round(currentTotalPrice * 100) / 100;
+                this.logger.log(
+                  `[ReservationGuard] Promo code "${promoCode}" valid for ${apartment.name} - adjusted price: ${currentTotalPrice}`,
+                );
+              } else {
+                this.logger.warn(
+                  `[ReservationGuard] Promo code "${promoCode}" invalid/expired for ${apartment.name}`,
+                );
+              }
+            } else {
+              this.logger.warn(
+                `[ReservationGuard] Promo code "${promoCode}" not found in DB`,
+              );
+            }
+          } catch (err: any) {
+            this.logger.warn(`[ReservationGuard] Error validating promo code: ${err.message}`);
+          }
+        }
         
         // Toleranță de 1% pentru diferențe de rotunjire
         const priceDiff = Math.abs(currentTotalPrice - submittedPrice);
@@ -95,10 +139,10 @@ export class ReservationService {
         
         if (priceDiff > tolerance && currentTotalPrice > 0) {
           this.logger.warn(
-            `[ReservationGuard] PRICE MISMATCH: ${apartment.name} - submitted: ${submittedPrice}, current: ${currentTotalPrice}`,
+            `[ReservationGuard] PRICE MISMATCH: ${apartment.name} - submitted: ${submittedPrice}, expected: ${currentTotalPrice}${promoCode ? ` (promo: ${promoCode})` : ''}`,
           );
           throw new BadRequestException(
-            `Prețul s-a modificat între timp. Prețul actual este ${currentTotalPrice} ${apartment.currency || 'EUR'}. Vă rugăm să reîncărcați pagina.`,
+            `Prețul s-a modificat între timp. Prețul actual este ${currentTotalPrice} ${apartment.currency || 'RON'}. Vă rugăm să reîncărcați pagina.`,
           );
         }
       }

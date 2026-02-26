@@ -9,6 +9,7 @@ import { RoomLockModule } from '../room-lock/room-lock.module';
 import { BlockedDate, BlockedDateSchema } from '../apartments/blocked-date.schema';
 import { Apartment, ApartmentSchema } from '../apartments/apartment.schema';
 import { PriceOverride, PriceOverrideSchema } from '../apartments/price-override.schema';
+import { DiscountCode, DiscountCodeSchema } from '../discountCodes/discountCode.schema';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { PriceOverride, PriceOverrideSchema } from '../apartments/price-override
       { name: BlockedDate.name, schema: BlockedDateSchema },
       { name: Apartment.name, schema: ApartmentSchema },
       { name: PriceOverride.name, schema: PriceOverrideSchema },
+      { name: DiscountCode.name, schema: DiscountCodeSchema },
     ]),
     HttpModule,
     RoomLockModule,

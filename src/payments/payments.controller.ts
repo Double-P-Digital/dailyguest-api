@@ -212,8 +212,9 @@ export class PaymentsController {
         }
         
         // Create reservation
+        const promoCode = metadata.promoCode || undefined;
         try {
-          await this.reservationService.create(reservationDto, apartmentId);
+          await this.reservationService.create(reservationDto, apartmentId, promoCode);
         } catch (reservationError: any) {
           this.logger.error(`Failed to create reservation: ${reservationError.message}`);
         }

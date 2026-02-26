@@ -75,11 +75,13 @@ export class PaymentsController {
     }
 
     // Step 3: Create PaymentIntent first to get the ID
-    const metadata = {
+    const metadata: Record<string, string> = {
       ...dto.metadata,
       hotelId: apartment.hotelId || dto.hotelId || '',
       roomType,
     };
+
+    this.logger.log(`[CreateIntent] apartment=${dto.apartment}, amount=${dto.amount}, currency=${dto.currency}, promoCode=${metadata.promoCode || 'none'}, stripeAccount=${apartment.stripeAccountId}`);
 
     const paymentIntentResult = await this.paymentsService.createPaymentIntent({
       amount: dto.amount,

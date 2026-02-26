@@ -74,7 +74,7 @@ export class ReservationService {
           );
         }
 
-        // Re-calculare preț curent (cu overrides) și verificare cu discount code
+        // Re-calculare preț curent (cu overrides) și avertisment dacă diferă
         const nightlyPrices: number[] = [];
         const currentDate = new Date(checkIn);
         while (currentDate < checkOut) {
@@ -89,60 +89,54 @@ export class ReservationService {
           currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        let currentTotalPrice = nightlyPrices.reduce((sum, p) => sum + p, 0);
+        let expectedTotalPrice = nightlyPrices.reduce((sum, p) => sum + p, 0);
         const submittedPrice = reservationDto.totalPrice;
-        
-        // Dacă avem promo code, recalculăm prețul așteptat cu discount-ul aplicat
-        if (promoCode && currentTotalPrice > 0) {
-          try {
-            const discountCode = await this.discountCodeModel.findOne({ 
-              code: promoCode.toUpperCase() 
-            }).exec();
-            
-            if (discountCode) {
-              const now = new Date();
-              const isValid = new Date(discountCode.expirationDate) >= now;
-              const isApplicable = !discountCode.apartmentIds?.length || 
-                discountCode.apartmentIds.some(id => id.toString() === apartment._id.toString());
-              
-              if (isValid && isApplicable) {
-                if (discountCode.discountType === DiscountType.FIXED) {
-                  // FIXED: valoarea e prețul pe noapte
-                  currentTotalPrice = discountCode.value * nightlyPrices.length;
-                } else {
-                  // PERCENTAGE: reduce totalul cu procentul
-                  const discountAmount = (currentTotalPrice * discountCode.value) / 100;
-                  currentTotalPrice = Math.max(0, currentTotalPrice - discountAmount);
-                }
-                currentTotalPrice = Math.round(currentTotalPrice * 100) / 100;
-                this.logger.log(
-                  `[ReservationGuard] Promo code "${promoCode}" valid for ${apartment.name} - adjusted price: ${currentTotalPrice}`,
-                );
+
+        // Aplicare promo code dacă există
+        if (promoCode) {
+          const discount = await this.discountCodeModel.findOne({
+            code: promoCode.toUpperCase(),
+          }).exec();
+
+          if (discount) {
+            const now = new Date();
+            const isExpired = discount.expirationDate && new Date(discount.expirationDate) < now;
+            const isApplicable = discount.apartmentIds.some(
+              (id) => id.toString() === apartment._id.toString(),
+            );
+
+            if (!isExpired && isApplicable) {
+              if (discount.discountType === DiscountType.PERCENTAGE) {
+                expectedTotalPrice = expectedTotalPrice * (1 - discount.value / 100);
               } else {
-                this.logger.warn(
-                  `[ReservationGuard] Promo code "${promoCode}" invalid/expired for ${apartment.name}`,
-                );
+                // FIXED: prețul pe noapte devine valoarea codului
+                const nights = nightlyPrices.length;
+                expectedTotalPrice = discount.value * nights;
               }
+              expectedTotalPrice = Math.round(expectedTotalPrice * 100) / 100;
+              this.logger.log(
+                `[ReservationGuard] PromoCode ${promoCode} applied: discount=${discount.discountType} ${discount.value}, expectedTotal=${expectedTotalPrice}`,
+              );
             } else {
               this.logger.warn(
-                `[ReservationGuard] Promo code "${promoCode}" not found in DB`,
+                `[ReservationGuard] PromoCode ${promoCode} invalid: expired=${isExpired}, applicable=${isApplicable}`,
               );
             }
-          } catch (err: any) {
-            this.logger.warn(`[ReservationGuard] Error validating promo code: ${err.message}`);
+          } else {
+            this.logger.warn(`[ReservationGuard] PromoCode ${promoCode} not found in DB`);
           }
         }
-        
+
         // Toleranță de 1% pentru diferențe de rotunjire
-        const priceDiff = Math.abs(currentTotalPrice - submittedPrice);
-        const tolerance = currentTotalPrice * 0.01;
+        const priceDiff = Math.abs(expectedTotalPrice - submittedPrice);
+        const tolerance = expectedTotalPrice * 0.01;
         
-        if (priceDiff > tolerance && currentTotalPrice > 0) {
+        if (priceDiff > tolerance && expectedTotalPrice > 0) {
           this.logger.warn(
-            `[ReservationGuard] PRICE MISMATCH: ${apartment.name} - submitted: ${submittedPrice}, expected: ${currentTotalPrice}${promoCode ? ` (promo: ${promoCode})` : ''}`,
+            `[ReservationGuard] PRICE MISMATCH: ${apartment.name} - submitted: ${submittedPrice}, expected: ${expectedTotalPrice}`,
           );
           throw new BadRequestException(
-            `Prețul s-a modificat între timp. Prețul actual este ${currentTotalPrice} ${apartment.currency || 'RON'}. Vă rugăm să reîncărcați pagina.`,
+            `Prețul s-a modificat între timp. Prețul actual este ${expectedTotalPrice} ${apartment.currency || 'EUR'}. Vă rugăm să reîncărcați pagina.`,
           );
         }
       }

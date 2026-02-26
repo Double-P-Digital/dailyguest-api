@@ -60,8 +60,16 @@ export class CreatePaymentIntentDto {
   @IsOptional()
   rooms?: string; 
 
+  @IsString()
+  @IsOptional()
+  guestAddress?: string;
+
+  @IsString()
+  @IsOptional()
+  promoCode?: string;
+
   get metadata(): Record<string, string> {
-    return {
+    const base: Record<string, string> = {
       apartment: this.apartment,
       guestName: this.guestName,
       guestEmail: this.guestEmail,
@@ -70,9 +78,14 @@ export class CreatePaymentIntentDto {
       guestsCount: this.guestsCount.toString(),
       totalPrice: this.amount.toString(),
       guestPhone: this.guestPhone || '',
+      guestAddress: this.guestAddress || '',
       hotelId: this.hotelId || '',
       rooms: this.rooms || '[]',
       currency: (this.currency || 'RON').toUpperCase(),
     };
+    if (this.promoCode) {
+      base.promoCode = this.promoCode;
+    }
+    return base;
   }
 }
